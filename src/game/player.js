@@ -1,0 +1,147 @@
+import { Input } from '../engine/input.js';
+import { clamp, aabb } from '../engine/math.js';
+
+const GRAV = 2100;
+const RUN = 250;
+const ACCEL = 2600;
+const FRICTION = 2400;
+const JUMP_V = 640;
+const COYOTE = 0.09;
+const BUFFER = 0.11;
+
+export class Player {
+  constructor(x, y) {
+    this.spawn = { x, y };
+    this.reset(x, y);
+    this.composure = 5;
+    this.maxComposure = 5;
+    this.learned = new Set();      // 'stet' | 'notes' | 'selectall'
+    this.canDoubleJump = false;
+    this.pages = 0;
+  }
+
+  reset(x, y) {
+    this.x = x; this.y = y;
+    this.w = 24; this.h = 34;
+    this.vx = 0; this.vy = 0;
+    this.face = 1;
+    this.onGround = false;
+    this.ducking = false;
+    this.coyote = 0;
+    this.buffer = 0;
+    this.usedDouble = false;
+    this.iframes = 0;
+    this.animT = 0;
+    this.fell = false;
+  }
+
+  get box() { return { x: this.x, y: this.y, w: this.w, h: this.h }; }
+
+  hurt(fromX) {
+    if (this.iframes > 0) return false;
+    this.composure = Math.max(0, this.composure - 1);
+    this.iframes = 1.0;
+    this.vx = (this.x < fromX ? -1 : 1) * 260;
+    this.vy = -260;
+    return true;
+  }
+
+  respawn(pt) {
+    const c = this.composure;
+    this.reset(pt.x, pt.y);
+    this.composure = Math.max(3, c); // spirals don't cost you the whole bar
+    this.iframes = 1.2;
+  }
+
+  update(dt, solids, movers, locked) {
+    this.animT += dt;
+    this.iframes = Math.max(0, this.iframes - dt);
+
+    const wantLeft = !locked && Input.held('left');
+    const wantRight = !locked && Input.held('right');
+    this.ducking = !locked && this.onGround && Input.held('duck');
+
+    const target = (wantRight - wantLeft) * RUN * (this.ducking ? 0.35 : 1);
+    if (target !== 0) {
+      this.vx += Math.sign(target - this.vx) * ACCEL * dt;
+      if ((target > 0 && this.vx > target) || (target < 0 && this.vx < target)) this.vx = target;
+      this.face = Math.sign(target);
+    } else {
+      this.vx += Math.sign(-this.vx) * FRICTION * dt;
+      if (Math.abs(this.vx) < 6) this.vx = 0;
+    }
+
+    if (!locked && Input.pressed('jump')) this.buffer = BUFFER;
+    this.buffer = Math.max(0, this.buffer - dt);
+    this.coyote = this.onGround ? COYOTE : Math.max(0, this.coyote - dt);
+
+    if (this.buffer > 0) {
+      if (this.coyote > 0) {
+        this.vy = -JUMP_V; this.buffer = 0; this.coyote = 0; this.onGround = false;
+      } else if (this.canDoubleJump && !this.usedDouble && !this.onGround) {
+        this.vy = -JUMP_V * 0.92; this.usedDouble = true; this.buffer = 0;
+      }
+    }
+    // Variable jump height.
+    if (this.vy < 0 && !Input.held('jump')) this.vy += GRAV * 1.6 * dt;
+
+    this.vy = clamp(this.vy + GRAV * dt, -JUMP_V, 1400);
+
+    const h = this.ducking ? 20 : 34;
+    if (h !== this.h) { this.y += this.h - h; this.h = h; }
+
+    // ---- Move + collide, axis at a time ----
+    const all = solids.concat(movers.filter((m) => m.solid));
+    this.x += this.vx * dt;
+    for (const s of all) {
+      if (!aabb(this.box, s)) continue;
+      if (this.vx > 0) this.x = s.x - this.w;
+      else if (this.vx < 0) this.x = s.x + s.w;
+      this.vx = 0;
+    }
+
+    this.onGround = false;
+    this.y += this.vy * dt;
+    for (const s of all) {
+      if (!aabb(this.box, s)) continue;
+      if (this.vy > 0) {
+        this.y = s.y - this.h;
+        this.onGround = true;
+        this.usedDouble = false;
+        if (s.onLand) s.onLand();
+      } else if (this.vy < 0) {
+        this.y = s.y + s.h;
+      }
+      this.vy = 0;
+    }
+
+    if (this.y > 900) { this.fell = true; }
+  }
+
+  draw(ctx) {
+    const blink = this.iframes > 0 && Math.floor(this.iframes * 20) % 2 === 0;
+    ctx.save();
+    ctx.translate(Math.round(this.x), Math.round(this.y));
+    if (!blink) {
+      // cloak
+      ctx.fillStyle = '#3a2c56';
+      ctx.fillRect(0, 4, this.w, this.h - 4);
+      // head
+      ctx.fillStyle = '#e7dfc8';
+      ctx.fillRect(5, -2, this.w - 10, 12);
+      // scarf / ink stain of learned marks
+      const marks = ['stet', 'notes', 'selectall'].filter((m) => this.learned.has(m));
+      ctx.fillStyle = '#c0455f';
+      marks.forEach((_, k) => ctx.fillRect(2 + k * 7, this.h - 6, 5, 4));
+      // eye
+      ctx.fillStyle = '#1a1226';
+      ctx.fillRect(this.face > 0 ? this.w - 9 : 5, 2, 4, 4);
+      // stride
+      const step = this.onGround && Math.abs(this.vx) > 20 ? Math.sin(this.animT * 18) * 3 : 0;
+      ctx.fillStyle = '#2a1f40';
+      ctx.fillRect(3, this.h - 3 + step, 6, 3);
+      ctx.fillRect(this.w - 9, this.h - 3 - step, 6, 3);
+    }
+    ctx.restore();
+  }
+}

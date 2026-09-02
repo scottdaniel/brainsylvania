@@ -55,13 +55,14 @@ export class Game {
     if (Input.pressed('restart')) { this.reset(); return; }
 
     this.dialogue.update(dt);
-    const locked = this.dialogue.busy || (this.boss.done && this.mode === 'playing' && this._turnPending);
+    const bossLock = this.bossStarted && this.boss.locksPlayer && !this.dialogue.busy;
+    const locked = this.dialogue.busy || this._turnPending || bossLock;
 
     // ---- world ----
     this.level.update(dt, this.player);
 
     const solids = this.level.solids.concat(this.sealWall ? [this.sealWall] : []);
-    this.player.update(dt, solids, this.level.movers, locked || this._turnPending);
+    this.player.update(dt, solids, this.level.movers, locked);
 
     // spiral: composure emptied, or fell in a pit
     if (!this.spiraling && (this.player.composure === 0 || this.player.fell)) {
@@ -86,6 +87,11 @@ export class Game {
     if (!this.bossStarted && this.player.x > this.level.bossTriggerX) {
       this.bossStarted = true;
       this.sealWall = { x: this.level.arena.x0 - 24, y: 0, w: 24, h: 540 };
+      const mid = (this.level.arena.x0 + this.level.arena.x1) / 2;
+      this.duelX = mid - 150;                 // where the player stands for the duel
+      this.player.x = this.duelX;
+      this.player.vx = 0;
+      this.player.face = 1;
       this.boss.wake();
       this.dialogue.queue(C.EDITOR_INTRO);
     }
@@ -93,13 +99,10 @@ export class Game {
     // ---- boss ----
     if (this.bossStarted && !this._turnPending && !this.dialogue.busy) {
       this.boss.update(dt, this.player, (ev, key) => this._bossEvent(ev, key));
-      if (this.boss.mirrorReady && Input.pressed('mirror')) {
-        this.boss.mirror(this.player, (ev, key) => this._bossEvent(ev, key));
-      }
     }
 
-    // mirror an imp
-    if (Input.pressed('mirror') && !this.boss.mirrorReady) {
+    // mirror an imp (E), only out in the level
+    if (Input.pressed('mirror') && this.boss.phase === 'sleep') {
       for (const im of this.level.imps) {
         if (im.tryMirror(this.player)) {
           this.hud.say('you copy its scribble. it deflates, embarrassed.', 2.4);
@@ -120,18 +123,33 @@ export class Game {
       });
     }
 
-    this.cam.follow(this.player, this.level.world.w, this.level.world.h, dt);
+    if (bossLock) {
+      // frame the duel: look at the midpoint between player and Editor
+      const focus = {
+        x: (this.player.x + this.boss.x) / 2 - 40,
+        y: this.level.groundY - 200,
+        w: 0, h: 0,
+      };
+      this.cam.follow(focus, this.level.world.w, this.level.world.h, dt);
+    } else {
+      this.cam.follow(this.player, this.level.world.w, this.level.world.h, dt);
+    }
   }
 
   _bossEvent(ev, key) {
-    if (ev === 'telegraph' && !this.telegraphSeen) {
-      this.telegraphSeen = true;
-      this.hud.say('a mark is coming. survive it clean.', 2.4);
-    } else if (ev === 'hit') {
-      this.cam.kick(12);
-    } else if (ev === 'mirror') {
-      this.cam.kick(8);
-      this.hud.say(C.MIRROR_LINES[key], 3.0);
+    if (ev === 'call') {
+      if (!this.telegraphSeen) {
+        this.telegraphSeen = true;
+        this.hud.say(C.MIRROR_FIRST_HINT, 3.4);
+      }
+    } else if (ev === 'good') {
+      this.cam.kick(3);
+    } else if (ev === 'bad') {
+      this.cam.kick(6);
+    } else if (ev === 'phrase') {
+      const pool = C.MIRROR_LINES[key] || [];
+      if (pool.length) this.hud.say(pool[(Math.random() * pool.length) | 0], 2.6);
+      if (key === 'perfect') this.cam.kick(9);
     }
   }
 
@@ -169,7 +187,7 @@ export class Game {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.W, this.H);
 
-    this.hud.draw(ctx, this.W, this.H, this.player, this.bossStarted ? this.boss : null, this.boss.mirrorReady);
+    this.hud.draw(ctx, this.W, this.H, this.player, this.bossStarted ? this.boss : null);
     this.dialogue.draw(ctx, this.W, this.H);
 
     if (this.mode === 'won') this._drawWin(ctx);
@@ -200,13 +218,12 @@ export class Game {
     ctx.fillText('PERFECTIONISM — BEFRIENDED', this.W / 2, 170);
     ctx.fillStyle = '#d8d2e8';
     ctx.font = '14px ui-monospace, monospace';
-    const marks = ['stet', 'notes', 'selectall'].filter((m) => this.player.learned.has(m));
-    ctx.fillText(`marks mirrored: ${marks.length}/3   ·   good enoughs kept: ${this.player.pages}/6`, this.W / 2, 210);
-    ctx.fillText(`composure remaining: ${this.player.composure}/5`, this.W / 2, 232);
+    ctx.fillText(`phrases mirrored: ${this.boss.successes}   ·   good enoughs kept: ${this.player.pages}/6`, this.W / 2, 210);
+    ctx.fillText(`composure remaining: ${this.player.composure}/${this.player.maxComposure}`, this.W / 2, 232);
     ctx.fillStyle = '#8a7fae';
     ctx.fillText('next: catastrophizing · impostorism · avoidance  (coming)', this.W / 2, 300);
     ctx.fillStyle = '#ffd27a';
-    ctx.fillText('press R to replay', this.W / 2, 350);
+    ctx.fillText('press Esc to replay', this.W / 2, 350);
     ctx.textAlign = 'left';
   }
 }

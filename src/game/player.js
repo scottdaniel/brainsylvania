@@ -1,13 +1,14 @@
 import { Input } from '../engine/input.js';
 import { clamp, aabb } from '../engine/math.js';
 
-const GRAV = 2100;
-const RUN = 250;
-const ACCEL = 2600;
-const FRICTION = 2400;
-const JUMP_V = 640;
-const COYOTE = 0.09;
-const BUFFER = 0.11;
+// Tuned so a running jump clears ~215px horizontally and ~128px vertically.
+const GRAV = 1900;
+const RUN = 288;
+const ACCEL = 3200;
+const FRICTION = 2600;
+const JUMP_V = 700;
+const COYOTE = 0.11;
+const BUFFER = 0.13;
 
 export class Player {
   constructor(x, y) {
@@ -33,6 +34,17 @@ export class Player {
     this.iframes = 0;
     this.animT = 0;
     this.fell = false;
+    this.echoDir = null;
+    this.echoT = 0;
+  }
+
+  // Called when the player nails a beat in the Editor's call-and-response:
+  // the body performs the move so you *see* yourself mirroring the phrase.
+  doEcho(dir) {
+    this.echoDir = dir;
+    this.echoT = 0.34;
+    if (dir === 'left') this.face = -1;
+    if (dir === 'right') this.face = 1;
   }
 
   get box() { return { x: this.x, y: this.y, w: this.w, h: this.h }; }
@@ -56,6 +68,8 @@ export class Player {
   update(dt, solids, movers, locked) {
     this.animT += dt;
     this.iframes = Math.max(0, this.iframes - dt);
+    this.echoT = Math.max(0, this.echoT - dt);
+    if (this.echoT === 0) this.echoDir = null;
 
     const wantLeft = !locked && Input.held('left');
     const wantRight = !locked && Input.held('right');
@@ -120,8 +134,16 @@ export class Player {
 
   draw(ctx) {
     const blink = this.iframes > 0 && Math.floor(this.iframes * 20) % 2 === 0;
+    // echo pose — a brief lunge/hop/crouch when mirroring a beat
+    const e = this.echoT / 0.34;
+    let ex = 0, ey = 0, squash = 0;
+    if (this.echoDir === 'up') ey = -14 * Math.sin(e * Math.PI);
+    else if (this.echoDir === 'down') squash = 10 * Math.sin(e * Math.PI);
+    else if (this.echoDir === 'left') ex = -12 * Math.sin(e * Math.PI);
+    else if (this.echoDir === 'right') ex = 12 * Math.sin(e * Math.PI);
     ctx.save();
-    ctx.translate(Math.round(this.x), Math.round(this.y));
+    ctx.translate(Math.round(this.x + ex), Math.round(this.y + ey + squash));
+    if (squash) ctx.scale(1.15, (this.h - squash) / this.h);
     if (!blink) {
       // cloak
       ctx.fillStyle = '#3a2c56';

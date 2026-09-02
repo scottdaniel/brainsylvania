@@ -8,9 +8,9 @@ const MAP = {
   ArrowRight: 'right', KeyD: 'right',
   ArrowUp: 'jump', KeyW: 'jump', KeyZ: 'jump', Space: 'jump',
   ArrowDown: 'duck', KeyS: 'duck',
-  KeyJ: 'mirror', KeyK: 'mirror',
+  KeyE: 'mirror', KeyJ: 'mirror',
   Enter: 'confirm', KeyX: 'confirm',
-  KeyR: 'restart',
+  Escape: 'restart', KeyR: 'restart',
 };
 
 addEventListener('keydown', (e) => {

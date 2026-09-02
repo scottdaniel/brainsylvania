@@ -1,125 +1,224 @@
-import { clamp, rand, aabb } from '../engine/math.js';
+import { Input } from '../engine/input.js';
+import { clamp } from '../engine/math.js';
 
-const GLYPH = { stet: '~~', notes: '!!!', selectall: '[  ]' };
-const ORDER = ['stet', 'notes', 'selectall'];
+// The Editor — a call-and-response boss. You cannot damage it. It performs a
+// short phrase of moves; you play the same phrase back on the beat. Matching
+// its phrases fills RECOGNITION until it recognises itself in you and stops.
+//
+// Beat vocabulary maps straight onto the player's own verbs:
+//   ▲ up = jump    ▼ down = duck    ◀ left = step left    ▶ right = step right
 
-// The Editor. You cannot damage it. Survive a mark, mirror it back.
+export const GLYPH = { up: '▲', down: '▼', left: '◀', right: '▶' };
+const BEATS = ['up', 'down', 'left', 'right'];
+const INPUT_FOR = { jump: 'up', duck: 'down', left: 'left', right: 'right' };
+
+const WIN = 100;
+const PERFECT_GAIN = 26;
+
 export class Editor {
   constructor(arena, groundY) {
-    this.arena = arena;               // {x0, x1}
+    this.arena = arena;
     this.groundY = groundY;
-    this.x = arena.x1 - 220;
-    this.y = 120;
-    this.w = 54; this.h = 72;
+    this.x = (arena.x0 + arena.x1) / 2 - 27;
+    this.y = 150;
+    this.w = 54;
+    this.h = 72;
     this.t = 0;
-    this.phase = 'sleep';             // sleep -> idle -> telegraph -> attack -> window
+    this.bob = 0;
+
+    this.phase = 'sleep';       // sleep · ready · call · answerReady · answer · resolve
     this.timer = 0;
     this.recognition = 0;
-    this.attack = null;
-    this.current = null;              // key of current mark
-    this.gotHit = false;
-    this.hazards = [];
-    this.mirrorReady = false;
-    this.pool = ORDER.slice();
     this.done = false;
-    this.bob = 0;
+
+    this.phrase = [];
+    this.phraseLen = 3;
+    this.successes = 0;
+    this.beatSec = 0.62;
+    this.beatIdx = 0;           // during call: glyphs revealed. during answer: beat cursor.
+    this.beatClock = 0;
+    this.hits = [];             // per beat: 'hit' | 'miss' | null
+    this.missedThisPhrase = false;
+    this.pose = null;           // the Editor's current demonstrated move
+    this.poseT = 0;
+    this.lastResult = null;     // 'perfect' | 'partial' | 'whiff'
+    this.flinch = 0;
   }
 
-  wake() { if (this.phase === 'sleep') { this.phase = 'idle'; this.timer = 0.6; } }
+  get locksPlayer() {
+    return this.phase !== 'sleep' && !this.done;
+  }
 
-  nextMark() {
-    if (this.pool.length === 0) this.pool = ORDER.slice();
-    // prefer marks not yet learned by the player, to keep progress moving
-    const i = Math.floor(rand(0, this.pool.length));
-    return this.pool.splice(i, 1)[0];
+  wake() {
+    if (this.phase !== 'sleep') return;
+    this._roll();
+    this.phase = 'ready';
+    this.timer = 1.1;
+  }
+
+  _roll() {
+    const p = [];
+    for (let i = 0; i < this.phraseLen; i++) {
+      let b = BEATS[(Math.random() * 4) | 0];
+      // avoid three identical beats in a row — keeps phrases readable
+      if (i >= 2 && p[i - 1] === p[i - 2] && b === p[i - 1]) {
+        b = BEATS[(BEATS.indexOf(b) + 1) % 4];
+      }
+      p.push(b);
+    }
+    this.phrase = p;
+    this.hits = new Array(p.length).fill(null);
+    this.beatIdx = 0;
+    this.beatClock = 0;
+    this.missedThisPhrase = false;
   }
 
   update(dt, player, onEvent) {
     this.t += dt;
-    this.bob = Math.sin(this.t * 2) * 6;
+    this.bob = Math.sin(this.t * 2) * 5;
+    this.flinch = Math.max(0, this.flinch - dt * 3);
+    if (this.pose) this.poseT += dt;
     if (this.phase === 'sleep' || this.done) return;
 
-    // float toward a hover spot above the player
-    const homeX = clamp(player.x, this.arena.x0 + 120, this.arena.x1 - 120);
-    this.x += (homeX - this.x) * Math.min(1, dt * 1.4);
-    this.y += (110 - this.y) * Math.min(1, dt * 1.4);
+    // drift toward arena centre, a touch above head height
+    const cx = (this.arena.x0 + this.arena.x1) / 2 - this.w / 2;
+    this.x += (cx - this.x) * Math.min(1, dt * 2);
+    this.y += (150 - this.y) * Math.min(1, dt * 2);
 
     this.timer -= dt;
 
-    if (this.phase === 'idle' && this.timer <= 0) {
-      this.current = this.nextMark();
-      this.phase = 'telegraph';
-      this.timer = 0.95;
-      onEvent('telegraph', this.current);
-    } else if (this.phase === 'telegraph' && this.timer <= 0) {
-      this.phase = 'attack';
-      this.gotHit = false;
-      this.hazards = this._spawn(this.current, player);
-      this.timer = this._duration(this.current);
-    } else if (this.phase === 'attack') {
-      for (const hz of this.hazards) hz.update(dt);
-      this.hazards = this.hazards.filter((hz) => !hz.dead);
-      if (!player.iframes && this._touch(player)) {
-        if (player.hurt(this.x)) {
-          this.gotHit = true;
-          this.recognition = Math.max(0, this.recognition - 10);
-          onEvent('hit');
-        }
+    if (this.phase === 'ready') {
+      if (this.timer <= 0) {
+        this.phase = 'call';
+        this.beatIdx = 0;
+        this.beatClock = 0;
+        this.pose = null;
+        onEvent('call');
       }
-      if (this.timer <= 0 && this.hazards.length === 0) {
-        if (this.gotHit) {
-          this.phase = 'idle'; this.timer = 0.9;
+      return;
+    }
+
+    if (this.phase === 'call') {
+      this.beatClock += dt;
+      if (this.beatClock >= this.beatSec) {
+        this.beatClock -= this.beatSec;
+        if (this.beatIdx < this.phrase.length) {
+          this.pose = this.phrase[this.beatIdx];
+          this.poseT = 0;
+          this.beatIdx++;
+          onEvent('callbeat', this.pose);
         } else {
-          this.phase = 'window'; this.timer = 2.4; this.mirrorReady = true;
-          onEvent('window', this.current);
+          // one rest beat, then hand it over
+          this.phase = 'answerReady';
+          this.timer = 0.55;
+          this.pose = null;
         }
       }
-    } else if (this.phase === 'window') {
-      if (this.timer <= 0) { this.mirrorReady = false; this.phase = 'idle'; this.timer = 0.7; }
+      return;
+    }
+
+    if (this.phase === 'answerReady') {
+      if (this.timer <= 0) {
+        this.phase = 'answer';
+        this.beatIdx = 0;
+        this.beatClock = 0;
+        this.pose = null;
+        onEvent('answer');
+      }
+      return;
+    }
+
+    if (this.phase === 'answer') {
+      const expected = this.phrase[this.beatIdx];
+      const got = this._readDir();
+      if (got && this.hits[this.beatIdx] == null) {
+        if (got === expected) {
+          this.hits[this.beatIdx] = 'hit';
+          player.doEcho(got);
+          onEvent('good');
+        } else {
+          this.hits[this.beatIdx] = 'miss';
+          this._miss(player, onEvent);
+        }
+      }
+
+      this.beatClock += dt;
+      if (this.beatClock >= this.beatSec) {
+        this.beatClock -= this.beatSec;
+        if (this.hits[this.beatIdx] == null) {
+          this.hits[this.beatIdx] = 'miss';
+          this._miss(player, onEvent);
+        }
+        this.beatIdx++;
+        if (this.beatIdx >= this.phrase.length) {
+          this._score(onEvent);
+          this.phase = 'resolve';
+          this.timer = 1.2;
+        }
+      }
+      return;
+    }
+
+    if (this.phase === 'resolve') {
+      if (this.timer <= 0) {
+        if (this.recognition >= WIN) {
+          this.done = true;
+          this.pose = null;
+        } else {
+          this._next();
+          this.phase = 'ready';
+          this.timer = 1.0;
+        }
+      }
     }
   }
 
-  // Called by game when the player presses MIRROR during the window.
-  mirror(player, onEvent) {
-    if (!this.mirrorReady) return false;
-    this.mirrorReady = false;
-    player.learned.add(this.current);
-    this.recognition = Math.min(100, this.recognition + 34);
-    onEvent('mirror', this.current);
-    if (this.recognition >= 100) { this.done = true; this.phase = 'idle'; this.hazards = []; }
-    else { this.phase = 'idle'; this.timer = 0.8; }
-    return true;
-  }
-
-  _duration(k) { return k === 'selectall' ? 1.6 : k === 'stet' ? 1.8 : 2.0; }
-
-  _touch(player) {
-    return this.hazards.some((hz) => hz.hits(player));
-  }
-
-  _spawn(k, player) {
-    const { x0, x1 } = this.arena;
-    if (k === 'stet') {
-      // horizontal ink dashes that sweep across at two heights
-      return [
-        new Beam(x0, this.groundY - 96, x1 - x0, 14, 1, 0.55),
-        new Beam(x0, this.groundY - 30, x1 - x0, 14, 1, 1.15),
-      ];
+  _readDir() {
+    for (const key of ['jump', 'duck', 'left', 'right']) {
+      if (Input.pressed(key)) return INPUT_FOR[key];
     }
-    if (k === 'notes') {
-      const px = player.x;
-      return [0, 0.35, 0.7].map((d, i) =>
-        new Note(clamp(px + (i - 1) * 60, x0 + 20, x1 - 20), -40, this.groundY, d));
-    }
-    // selectall: box closes in, safe gap where the player currently is
-    const safeX = clamp(player.x - 55, x0 + 10, x1 - 120);
-    return [new Marquee(x0, x1, this.groundY, safeX, 110)];
+    return null;
   }
+
+  _miss(player, onEvent) {
+    // Gentle: a missed beat costs nothing but the beat itself — the phrase
+    // just won't score, and the Editor tries another.
+    if (!this.missedThisPhrase) this.missedThisPhrase = true;
+    onEvent('bad');
+  }
+
+  _score(onEvent) {
+    const hits = this.hits.filter((h) => h === 'hit').length;
+    const n = this.phrase.length;
+    if (hits === n) {
+      this.recognition = Math.min(WIN, this.recognition + PERFECT_GAIN);
+      this.successes++;
+      this.lastResult = 'perfect';
+      this.flinch = 1;
+    } else if (hits >= 1) {
+      this.recognition = Math.min(WIN, this.recognition + (hits >= n - 1 ? 12 : 6));
+      this.lastResult = 'partial';
+      this.flinch = 0.5;
+    } else {
+      this.lastResult = 'whiff';
+    }
+    onEvent('phrase', this.lastResult);
+  }
+
+  _next() {
+    if (this.successes > 0 && this.successes % 2 === 0 && this.phraseLen < 5) this.phraseLen++;
+    this.beatSec = Math.max(0.40, 0.62 - this.successes * 0.04);
+    this._roll();
+  }
+
+  // ---- draw ----
 
   draw(ctx) {
     const y = this.y + this.bob;
+    const sh = this.flinch ? (Math.random() - 0.5) * this.flinch * 10 : 0;
     ctx.save();
-    ctx.translate(Math.round(this.x), Math.round(y));
+    ctx.translate(Math.round(this.x + sh), Math.round(y));
+
     // robe
     ctx.fillStyle = this.done ? '#4a3a2a' : '#241a30';
     ctx.beginPath();
@@ -128,11 +227,13 @@ export class Editor {
     ctx.lineTo(-6, this.h);
     ctx.closePath();
     ctx.fill();
+
     // hood void
     ctx.fillStyle = '#0c0812';
     ctx.beginPath();
     ctx.arc(this.w / 2, 10, 15, 0, Math.PI * 2);
     ctx.fill();
+
     // the pen
     ctx.strokeStyle = this.done ? '#8fd6c4' : '#ff4d68';
     ctx.lineWidth = 4;
@@ -140,115 +241,36 @@ export class Editor {
     ctx.moveTo(this.w + 2, this.h - 20);
     ctx.lineTo(this.w + 22, this.h - 4);
     ctx.stroke();
+
     // eyes
     ctx.fillStyle = this.done ? '#9fe8d6' : '#ff5a75';
     ctx.fillRect(this.w / 2 - 8, 8, 4, 4);
     ctx.fillRect(this.w / 2 + 4, 8, 4, 4);
     ctx.restore();
 
-    for (const hz of this.hazards) hz.draw(ctx);
-
-    // telegraph glyph
-    if (this.phase === 'telegraph') {
+    // demonstrated move: a big glyph pulsing beside the Editor during 'call'
+    if (this.pose && (this.phase === 'call')) {
+      const a = clamp(1 - this.poseT * 1.6, 0, 1);
       ctx.save();
-      ctx.globalAlpha = 0.6 + Math.sin(this.t * 30) * 0.4;
+      ctx.globalAlpha = 0.35 + a * 0.65;
       ctx.fillStyle = '#ff5a75';
-      ctx.font = 'bold 44px ui-monospace, monospace';
+      ctx.font = 'bold 52px ui-monospace, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(GLYPH[this.current], this.x + this.w / 2, y - 18);
+      ctx.fillText(GLYPH[this.pose], this.x + this.w / 2, y - 16);
+      ctx.restore();
+      ctx.textAlign = 'left';
+    }
+
+    // tempo ring while a phrase is in play
+    if (this.phase === 'call' || this.phase === 'answer') {
+      const beatP = this.beatClock / this.beatSec;
+      ctx.save();
+      ctx.strokeStyle = this.phase === 'answer' ? 'rgba(143,214,196,0.7)' : 'rgba(255,90,117,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, y + this.h / 2, 46 - beatP * 30, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.restore();
     }
-  }
-}
-
-// ---- hazards ----
-
-class Beam {
-  constructor(x, y, w, h, dir, warn) {
-    this.x = x; this.y = y; this.w = w; this.h = h;
-    this.warn = warn; this.live = 0.42; this.dead = false; this.t = 0;
-  }
-  update(dt) {
-    this.t += dt;
-    if (this.t > this.warn + this.live) this.dead = true;
-  }
-  get active() { return this.t >= this.warn && this.t < this.warn + this.live; }
-  hits(p) { return this.active && aabb({ x: this.x, y: this.y, w: this.w, h: this.h }, p.box); }
-  draw(ctx) {
-    ctx.save();
-    if (this.active) {
-      ctx.fillStyle = '#ff4d68';
-      ctx.fillRect(this.x, this.y, this.w, this.h);
-    } else {
-      ctx.strokeStyle = 'rgba(255,90,117,0.5)';
-      ctx.setLineDash([8, 6]);
-      ctx.strokeRect(this.x, this.y + this.h / 2, this.w, 1);
-    }
-    ctx.restore();
-  }
-}
-
-class Note {
-  constructor(x, y, groundY, delay) {
-    this.x = x; this.y = y; this.groundY = groundY; this.delay = delay;
-    this.vy = 0; this.t = 0; this.dead = false; this.w = 16; this.h = 26;
-  }
-  update(dt) {
-    this.t += dt;
-    if (this.t < this.delay) return;
-    this.vy += 1600 * dt;
-    this.y += this.vy * dt;
-    if (this.y > this.groundY) { this.y = this.groundY; this.rest = (this.rest || 0) + dt; }
-    if (this.rest > 0.5) this.dead = true;
-  }
-  hits(p) {
-    return this.t >= this.delay && aabb({ x: this.x - 8, y: this.y, w: this.w, h: this.h }, p.box);
-  }
-  draw(ctx) {
-    if (this.t < this.delay) {
-      ctx.fillStyle = 'rgba(255,120,140,0.5)';
-      ctx.fillRect(this.x - 2, 0, 4, this.groundY);
-      return;
-    }
-    ctx.fillStyle = '#ff6b84';
-    ctx.font = 'bold 26px ui-monospace, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('!', this.x, this.y + 20);
-  }
-}
-
-class Marquee {
-  constructor(x0, x1, groundY, safeX, safeW) {
-    this.x0 = x0; this.x1 = x1; this.groundY = groundY;
-    this.safeX = safeX; this.safeW = safeW;
-    this.t = 0; this.warn = 0.5; this.close = 0.5; this.hold = 0.5; this.dead = false;
-  }
-  update(dt) {
-    this.t += dt;
-    if (this.t > this.warn + this.close + this.hold) this.dead = true;
-  }
-  get k() { return clamp((this.t - this.warn) / this.close, 0, 1); }
-  hits(p) {
-    if (this.t < this.warn) return false;
-    const leftW = (this.safeX - this.x0) * this.k;
-    const rightW = (this.x1 - (this.safeX + this.safeW)) * this.k;
-    const inLeft = aabb({ x: this.x0, y: 0, w: leftW, h: this.groundY + 40 }, p.box);
-    const inRight = aabb({ x: this.x1 - rightW, y: 0, w: rightW, h: this.groundY + 40 }, p.box);
-    return inLeft || inRight;
-  }
-  draw(ctx) {
-    ctx.save();
-    if (this.t < this.warn) {
-      ctx.strokeStyle = 'rgba(255,90,117,0.7)';
-      ctx.setLineDash([6, 6]);
-      ctx.strokeRect(this.safeX, 8, this.safeW, this.groundY - 8);
-    } else {
-      const leftW = (this.safeX - this.x0) * this.k;
-      const rightW = (this.x1 - (this.safeX + this.safeW)) * this.k;
-      ctx.fillStyle = 'rgba(255,77,104,0.85)';
-      ctx.fillRect(this.x0, 0, leftW, this.groundY + 40);
-      ctx.fillRect(this.x1 - rightW, 0, rightW, this.groundY + 40);
-    }
-    ctx.restore();
   }
 }

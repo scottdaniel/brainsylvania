@@ -4,8 +4,14 @@ A Castlevania-style side-scroller where every level is a different *-ism*. You d
 kill your inner demons — turns out they don't stay dead. You learn their moves until
 they recognize themselves in you, and then they walk with you instead.
 
-**Level 1 — Perfectionism.** The boss is *The Editor*. You cannot damage it. Survive a
-mark cleanly, then mirror it back. Three mirrored marks and it stands down.
+**Level 1 — Perfectionism.** The boss is *The Editor*. You cannot damage it — it's
+you. The fight is **call and response**: The Editor performs a short phrase of moves
+(`▲` jump, `▼` duck, `◀ ▶` step), shown beat by beat in a row at the top of the
+screen. Then it's your turn — play the same phrase back on the beat with your own
+keys. Your character physically does each move as you hit it, so you *see* yourself
+mirroring the phrase. Matching phrases fills RECOGNITION; phrases get longer and
+faster as it rises. At full RECOGNITION The Editor recognises itself in you and
+stands down. Missing a beat costs nothing but the phrase — it just tries another.
 
 ## Run it
 
@@ -25,9 +31,11 @@ config does this for you.)
 | ← → / A D | move |
 | ↑ / Z / Space | jump (variable height, coyote time) |
 | ↓ | duck |
-| J | mirror — copy a mark you just survived |
+| E | mirror an imp (out in the level) |
 | Enter | advance dialogue |
-| R | restart level |
+| Esc / R | restart level |
+
+In The Editor fight, `↑ ↓ ← →` double as the four beats you play back.
 
 ## Design notes
 
@@ -36,6 +44,8 @@ config does this for you.)
 - **Keep moving.** Platforms crumble if you stand on them (analysis paralysis). Red-pen
   imps only bite when you stop.
 - **"Good enough" pages** are optional collectibles. Getting all of them is its own joke.
+- **The boss can't be lost.** A botched phrase just isn't scored — no fail state, no
+  timer, no damage. The point is the exchange, not the challenge.
 - The befriended *-ism* still hovers near you afterward, muttering — gentler now.
 
 ## Layout

@@ -13,13 +13,18 @@ Bundle* (Humble Bundle, Aug–Sep 2026), all published via
 (commercial use permitted; see `assets/candidates/README.md` for the full
 licensing writeup).
 
-- **`jump.wav`** — Combat Sounds Bundle, The Sound Guild
+- **`jump.wav`, `double-jump.wav`** — Combat Sounds Bundle, The Sound Guild
 - **`hurt.wav`** — Monster Sounds Volume 1, The Sound Guild
 - **`mirror-good.wav`** — User Interface SFX Bundle, The Sound Guild
 - **`mirror-perfect.wav`** — Monster & Magic Bundle, Khron Studio
 - **`dialogue-blip.wav`** — User Interface SFX Bundle, The Sound Guild
 - **`ambient.wav`** — Ambience Sounds Pack, The Sound Guild
-- **`editor-voice.wav`** — Old Magician Voice Pack, The Sound Guild
+- **`editor-voice-1/2/3.wav`** — Old Magician Voice Pack, The Sound Guild
+  (The Editor's line cycles between all three so it doesn't repeat.)
+
+The dialogue box art in `src/assets/ui/` (`dialogue-panel.png`, `continue.png`,
+`continue-hl.png`) is from **Dialogue Boxes**, also GameDev Market, same Pro
+Licence.
 
 Additional art assets by **Ricardo Machado** ("Beowulf") — dungeon tilesets and
 monster loot icons — appear among the staged candidates in

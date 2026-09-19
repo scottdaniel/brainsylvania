@@ -4,7 +4,7 @@
     {
       "name": "brainsylvania",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5678"],
+      "runtimeArgs": ["devserver.py", "5678"],
       "port": 5678
     }
   ]

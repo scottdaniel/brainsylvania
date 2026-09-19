@@ -18,11 +18,13 @@ stands down. Missing a beat costs nothing but the phrase — it just tries anoth
 No build step — it's plain ES modules. Serve the folder and open it:
 
 ```bash
-python3 -m http.server 5678
+python3 devserver.py 5678
 ```
 
 Then visit http://localhost:5678 . (In Claude Code, the `brainsylvania` launch
-config does this for you.)
+config does this for you.) It's `http.server` with `Cache-Control: no-store` on
+every response — plain `python3 -m http.server` will happily serve you a stale
+cached module after an edit, even past a hard-reload or in a brand-new tab.
 
 ## Controls
 
@@ -62,7 +64,7 @@ src/
   engine/   loop, input, camera, math, sprite (image drawing), audio (sound pools)
   game/     game state machine, player, level, boss (editor), imp, dialogue, hud, sfx
   content/  perfectionism.js — level geometry + all the writing, together
-  assets/   player.png, editor.png (hand-drawn sprites) + sfx/ (sound effects)
+  assets/   player.png, editor.png (hand-drawn sprites) + sfx/ (sound) + ui/ (dialogue box)
 assets/
   candidates/  surveyed third-party art/audio, not wired into the game yet
 ```

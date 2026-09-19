@@ -1,6 +1,12 @@
 import { Input } from '../engine/input.js';
 import { clamp } from '../engine/math.js';
 import { SFX } from './sfx.js';
+import { loadImage } from '../engine/sprite.js';
+
+const asset = (name) => new URL(`../assets/ui/${name}`, import.meta.url);
+const PANEL = loadImage(asset('dialogue-panel.png'));
+const CONTINUE = loadImage(asset('continue.png'));
+const CONTINUE_HL = loadImage(asset('continue-hl.png'));
 
 // A tiny typewriter dialogue box. queue([{who, text}, ...], onDone).
 export class Dialogue {
@@ -51,29 +57,40 @@ export class Dialogue {
     const boxH = 120;
     const y = H - boxH - 18;
     ctx.save();
-    ctx.fillStyle = 'rgba(8, 5, 14, 0.92)';
-    ctx.strokeStyle = '#5a3d78';
-    ctx.lineWidth = 2;
-    roundRect(ctx, 24, y, W - 48, boxH, 8);
-    ctx.fill();
-    ctx.stroke();
+    if (PANEL.ready) {
+      ctx.drawImage(PANEL, 24, y, W - 48, boxH);
+    } else {
+      ctx.fillStyle = 'rgba(8, 5, 14, 0.92)';
+      ctx.strokeStyle = '#5a3d78';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 24, y, W - 48, boxH, 8);
+      ctx.fill();
+      ctx.stroke();
+    }
 
     if (line.who) {
       ctx.fillStyle = line.who === 'YOU' ? '#8fd6c4' : '#e0728a';
       ctx.font = '13px ui-monospace, monospace';
-      ctx.fillText(line.who, 40, y + 26);
+      ctx.fillText(line.who, 40, y + 34);
     }
 
     ctx.fillStyle = '#e9e4f5';
     ctx.font = '16px ui-monospace, monospace';
     const shown = line.text.slice(0, Math.floor(this.chars));
-    wrapText(ctx, shown, 40, y + (line.who ? 52 : 40), W - 96, 22);
+    wrapText(ctx, shown, 40, y + (line.who ? 58 : 40), W - 96, 22);
 
     const done = this.chars >= line.text.length;
-    if (done && (performance.now() / 400) % 2 < 1) {
-      ctx.fillStyle = '#8a7fae';
-      ctx.font = '12px ui-monospace, monospace';
-      ctx.fillText('▶  Enter', W - 120, y + boxH - 14);
+    if (done) {
+      const pulse = (performance.now() / 400) % 2 < 1;
+      if (CONTINUE.ready && CONTINUE_HL.ready) {
+        const icon = pulse ? CONTINUE_HL : CONTINUE;
+        const iw = 30, ih = 30 * (icon.naturalHeight / icon.naturalWidth);
+        ctx.drawImage(icon, W - 56, y + boxH - 16 - ih, iw, ih);
+      } else if (pulse) {
+        ctx.fillStyle = '#8a7fae';
+        ctx.font = '12px ui-monospace, monospace';
+        ctx.fillText('▶  Enter', W - 120, y + boxH - 14);
+      }
     }
     ctx.restore();
   }

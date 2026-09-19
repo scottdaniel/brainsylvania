@@ -1,11 +1,12 @@
-# Asset candidates — not wired in yet
+# Asset candidates
 
 Curated picks from Scott's Humble Bundle asset library
 (`/Users/scott/game_creation_assets_HB/`), pulled out of a one-time survey so they
-survive past `/tmp` getting cleared. **Nothing here is used by the game yet** —
-this is a shortlist to choose from, not a finished art pass. See
-`src/assets/` for what's actually wired in (currently just the hand-drawn
-player/editor sprites).
+survive past `/tmp` getting cleared. This is a shortlist to choose from, not a
+finished art pass — see `src/assets/` for what's actually wired into the game
+(hand-drawn player/editor sprites, sound, and — as of 2026-09-19 — the
+`ui/fantasy-style05/` dialogue-box art, copied into `src/assets/ui/`. Everything
+else below is still just sitting here as an option.
 
 ## What's here
 
@@ -18,9 +19,11 @@ player/editor sprites).
   orc attack sheet (`Attack01/02.png`) kept mainly as an animation-timing
   reference. Note: painted/shaded style, doesn't match the hand-drawn line-art
   player/editor sprites — best used for tone/background, not a direct swap.
-- `ui/grunge-style01/` and `ui/fantasy-style05/` — two dialogue-box skins to
-  consider in place of the hand-drawn Canvas dialogue box. `page_left/right.png`
-  are parchment pages for a journal/menu screen.
+- `ui/grunge-style01/` and `ui/fantasy-style05/` — two dialogue-box skins.
+  **`fantasy-style05` is the one in use** (Scott picked it 2026-09-19; live in
+  `src/assets/ui/`). `grunge-style01` is the un-chosen alternative, still here
+  in case that changes. `page_left/right.png` are parchment pages for a future
+  journal/menu screen.
 - `sound/` — the actual gap-filler (game currently has zero audio). Rough mapping:
   `Bite_01` / `Big_Hit` / `Attack_With_Blood_01` → hit feedback candidates (no
   pack anywhere had a literal "jump" sound — genuine gap);

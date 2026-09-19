@@ -96,10 +96,10 @@ export class Player {
     if (this.buffer > 0) {
       if (this.coyote > 0) {
         this.vy = -JUMP_V; this.buffer = 0; this.coyote = 0; this.onGround = false;
-        SFX.jump.play(0.5);
+        SFX.jump.play(0.25);
       } else if (this.canDoubleJump && !this.usedDouble && !this.onGround) {
         this.vy = -JUMP_V * 0.92; this.usedDouble = true; this.buffer = 0;
-        SFX.jump.play(0.6);
+        SFX.doubleJump.play(0.275);
       }
     }
     // Variable jump height.

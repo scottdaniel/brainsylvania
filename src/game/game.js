@@ -147,7 +147,7 @@ export class Game {
 
   _bossEvent(ev, key) {
     if (ev === 'call') {
-      SFX.editorVoice.play(0.4);
+      SFX.editorVoice.play(0.2);
       if (!this.telegraphSeen) {
         this.telegraphSeen = true;
         this.hud.say(C.MIRROR_FIRST_HINT, 3.4);

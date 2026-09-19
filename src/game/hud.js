@@ -117,7 +117,7 @@ export class Hud {
       ctx.textAlign = 'center';
       ctx.fillStyle = '#6a5f88';
       ctx.font = '11px ui-monospace, monospace';
-      ctx.fillText('▲ jump    ▼ duck    ◀ ▶ step', W / 2, y + 58);
+      ctx.fillText('▲ jump/A    ▼ duck/Y    ◀ ▶ step/D-pad', W / 2, y + 58);
       ctx.restore();
       ctx.textAlign = 'left';
     }

@@ -1,5 +1,9 @@
 import { Input } from '../engine/input.js';
 import { clamp, aabb } from '../engine/math.js';
+import { loadImage, drawAnchored } from '../engine/sprite.js';
+import { SFX } from './sfx.js';
+
+const SPRITE = loadImage(new URL('../assets/player.png', import.meta.url));
 
 // Tuned so a running jump clears ~215px horizontally and ~128px vertically.
 const GRAV = 1900;
@@ -92,8 +96,10 @@ export class Player {
     if (this.buffer > 0) {
       if (this.coyote > 0) {
         this.vy = -JUMP_V; this.buffer = 0; this.coyote = 0; this.onGround = false;
+        SFX.jump.play(0.5);
       } else if (this.canDoubleJump && !this.usedDouble && !this.onGround) {
         this.vy = -JUMP_V * 0.92; this.usedDouble = true; this.buffer = 0;
+        SFX.jump.play(0.6);
       }
     }
     // Variable jump height.
@@ -144,25 +150,23 @@ export class Player {
     ctx.save();
     ctx.translate(Math.round(this.x + ex), Math.round(this.y + ey + squash));
     if (squash) ctx.scale(1.15, (this.h - squash) / this.h);
-    if (!blink) {
-      // cloak
+    if (!blink && SPRITE.ready) {
+      const running = this.onGround && Math.abs(this.vx) > 20;
+      const bob = running ? Math.abs(Math.sin(this.animT * 12)) * 3 : 0;
+      drawAnchored(ctx, SPRITE, {
+        x: this.w / 2,
+        bottomY: this.h - bob,
+        height: 52,
+        flip: this.face < 0,
+      });
+    } else if (!blink) {
+      // vector placeholder — shows only until player.png decodes
       ctx.fillStyle = '#3a2c56';
       ctx.fillRect(0, 4, this.w, this.h - 4);
-      // head
       ctx.fillStyle = '#e7dfc8';
       ctx.fillRect(5, -2, this.w - 10, 12);
-      // scarf / ink stain of learned marks
-      const marks = ['stet', 'notes', 'selectall'].filter((m) => this.learned.has(m));
-      ctx.fillStyle = '#c0455f';
-      marks.forEach((_, k) => ctx.fillRect(2 + k * 7, this.h - 6, 5, 4));
-      // eye
       ctx.fillStyle = '#1a1226';
       ctx.fillRect(this.face > 0 ? this.w - 9 : 5, 2, 4, 4);
-      // stride
-      const step = this.onGround && Math.abs(this.vx) > 20 ? Math.sin(this.animT * 18) * 3 : 0;
-      ctx.fillStyle = '#2a1f40';
-      ctx.fillRect(3, this.h - 3 + step, 6, 3);
-      ctx.fillRect(this.w - 9, this.h - 3 - step, 6, 3);
     }
     ctx.restore();
   }

@@ -1,5 +1,6 @@
 import { Input } from '../engine/input.js';
 import { clamp } from '../engine/math.js';
+import { SFX } from './sfx.js';
 
 // A tiny typewriter dialogue box. queue([{who, text}, ...], onDone).
 export class Dialogue {
@@ -19,6 +20,7 @@ export class Dialogue {
     this.chars = 0;
     this.onDone = onDone || null;
     this.active = this.lines.length > 0;
+    if (this.active) SFX.dialogueBlip.play(0.3);
   }
 
   update(dt) {
@@ -37,6 +39,8 @@ export class Dialogue {
         const cb = this.onDone;
         this.onDone = null;
         if (cb) cb();
+      } else {
+        SFX.dialogueBlip.play(0.3);
       }
     }
   }

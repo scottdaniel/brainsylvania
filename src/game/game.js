@@ -2,9 +2,11 @@ import { Input } from '../engine/input.js';
 import { Camera } from '../engine/camera.js';
 import { Player } from './player.js';
 import { Level } from './level.js';
-import { Editor } from './editor.js';
+import { Editor, SPRITE as EDITOR_SPRITE } from './editor.js';
 import { Dialogue } from './dialogue.js';
 import { Hud } from './hud.js';
+import { drawAnchored } from '../engine/sprite.js';
+import { SFX, AMBIENT } from './sfx.js';
 import * as C from '../content/perfectionism.js';
 
 export class Game {
@@ -14,6 +16,7 @@ export class Game {
     this.dialogue = new Dialogue();
     this.hud = new Hud();
     this.mode = 'title';
+    this._padWasConnected = false;
     this.reset();
   }
 
@@ -37,10 +40,16 @@ export class Game {
     this.reset();
     this.mode = 'playing';
     this.dialogue.queue(C.OPENING);
+    AMBIENT.start();
   }
 
   step(dt) {
     this.hud.update(dt);
+
+    if (Input.gamepadConnected !== this._padWasConnected) {
+      this._padWasConnected = Input.gamepadConnected;
+      this.hud.say(Input.gamepadConnected ? '🎮 controller connected' : '🎮 controller disconnected', 2.0);
+    }
 
     if (this.mode === 'title') {
       if (Input.pressed('confirm') || Input.pressed('jump')) this.start();
@@ -138,18 +147,20 @@ export class Game {
 
   _bossEvent(ev, key) {
     if (ev === 'call') {
+      SFX.editorVoice.play(0.4);
       if (!this.telegraphSeen) {
         this.telegraphSeen = true;
         this.hud.say(C.MIRROR_FIRST_HINT, 3.4);
       }
     } else if (ev === 'good') {
       this.cam.kick(3);
+      SFX.mirrorGood.play(0.45);
     } else if (ev === 'bad') {
       this.cam.kick(6);
     } else if (ev === 'phrase') {
       const pool = C.MIRROR_LINES[key] || [];
       if (pool.length) this.hud.say(pool[(Math.random() * pool.length) | 0], 2.6);
-      if (key === 'perfect') this.cam.kick(9);
+      if (key === 'perfect') { this.cam.kick(9); SFX.mirrorPerfect.play(0.5); }
     }
   }
 
@@ -169,13 +180,18 @@ export class Game {
       ctx.fillRect(this.sealWall.x, 0, this.sealWall.w, 540);
     }
     this.player.draw(ctx);
-    // companion after befriending
+    // companion after befriending — a small echo of the Editor, drifting along
     if (this._turnDone) {
-      ctx.save();
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = '#4a3a2a';
       const cx = this.player.x - 34 * this.player.face;
-      ctx.fillRect(cx, this.player.y - 24 + Math.sin(performance.now() / 300) * 4, 20, 30);
+      const cy = this.player.y + this.player.h + Math.sin(performance.now() / 300) * 4;
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      if (EDITOR_SPRITE.ready) {
+        drawAnchored(ctx, EDITOR_SPRITE, { x: cx, bottomY: cy, height: 34, flip: this.player.face > 0 });
+      } else {
+        ctx.fillStyle = '#4a3a2a';
+        ctx.fillRect(cx - 10, cy - 30, 20, 30);
+      }
       ctx.restore();
     }
     this.cam.end(ctx);

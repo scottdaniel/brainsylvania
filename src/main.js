@@ -11,6 +11,7 @@ if (new URLSearchParams(location.search).has('debug')) window.__game = game;
 
 runLoop({
   step: (dt) => {
+    Input.poll();
     if (window.__pauseLoop) return;
     game.step(dt);
     Input.endFrame();

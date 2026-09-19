@@ -26,16 +26,23 @@ config does this for you.)
 
 ## Controls
 
-| key | action |
-| --- | --- |
-| ← → / A D | move |
-| ↑ / Z / Space | jump (variable height, coyote time) |
-| ↓ | duck |
-| E | mirror an imp (out in the level) |
-| Enter | advance dialogue |
-| Esc / R | restart level |
+| keyboard | controller (Xbox-style) | action |
+| --- | --- | --- |
+| ← → / A D | left stick / D-pad | move |
+| ↑ / Z / Space | A / D-pad up / stick up | jump (variable height, coyote time) |
+| ↓ | Y / D-pad down / stick down | duck |
+| E / J | B / X / LB / RB | mirror an imp (out in the level) |
+| Enter | Start | advance dialogue |
+| Esc / R | Back | restart level |
 
-In The Editor fight, `↑ ↓ ← →` double as the four beats you play back.
+In The Editor fight, `↑ ↓ ← →` (or the stick/D-pad/A/Y above) double as the four
+beats you play back.
+
+**Controller:** any Xbox-layout gamepad works out of the box via the browser's
+Gamepad API — tested with an 8BitDo Ultimate 2 in X-input mode. It merges into the
+same input as keyboard, so nothing else has to know which one you're using. Press
+any button once with the controller on for the browser to notice it (a Gamepad-API
+quirk, not ours) — a toast confirms the connection.
 
 ## Design notes
 
@@ -52,12 +59,25 @@ In The Editor fight, `↑ ↓ ← →` double as the four beats you play back.
 
 ```
 src/
-  engine/   loop, input, camera, math
-  game/     game state machine, player, level, boss (editor), imp, dialogue, hud
+  engine/   loop, input, camera, math, sprite (image drawing), audio (sound pools)
+  game/     game state machine, player, level, boss (editor), imp, dialogue, hud, sfx
   content/  perfectionism.js — level geometry + all the writing, together
+  assets/   player.png, editor.png (hand-drawn sprites) + sfx/ (sound effects)
+assets/
+  candidates/  surveyed third-party art/audio, not wired into the game yet
 ```
+
+## Sound
+
+Jump, imp hits, mirror hits/phrases, dialogue blips, and a looping castle drone —
+all in `src/assets/sfx/`, played through `src/engine/audio.js`. Third-party,
+licensed for commercial use — see [CREDITS.md](CREDITS.md).
 
 ## Next
 
 Level 2+: catastrophizing (*The Oracle of Worst-Case*), impostorism (*The Committee*),
 avoidance (*The Fog*). Each is a new boss and a new verb for the mirror.
+
+## Credits
+
+See [CREDITS.md](CREDITS.md).

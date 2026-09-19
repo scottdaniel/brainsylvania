@@ -1,4 +1,5 @@
 import { aabb } from '../engine/math.js';
+import { SFX } from './sfx.js';
 
 // Red-pen imp. Bobs along a segment. Touch = knockback. Cannot be killed.
 // While "scribbling" (telegraph), a MIRROR back makes it lose interest.
@@ -27,20 +28,24 @@ export class Imp {
 
     const near = Math.abs(player.x - this.x) < 120;
     this.cool -= dt;
-    if (near && this.scribble <= 0 && this.cool <= 0) { this.scribble = 1.1; }
+    if (near && this.scribble <= 0 && this.cool <= 0) { this.scribble = 1.6; }
     if (this.scribble > 0) {
       this.scribble -= dt;
       if (this.scribble <= 0) this.cool = 2.4;
     }
 
-    if (aabb(this.box, player.box) && player.hurt(this.x)) { this.cool = 1.5; }
+    if (aabb(this.box, player.box) && player.hurt(this.x)) {
+      this.cool = 1.5;
+      SFX.hurt.play(0.5);
+    }
   }
 
   // Returns true if this mirror attempt calmed the imp.
   tryMirror(player) {
     if (this.calmed || this.scribble <= 0) return false;
-    if (Math.abs(player.x - this.x) > 90) return false;
+    if (Math.abs(player.x - this.x) > 130) return false;
     this.calmed = true;
+    SFX.mirrorGood.play(0.6);
     return true;
   }
 

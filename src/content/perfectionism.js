@@ -43,9 +43,12 @@ export const IMPS = [
 ];
 
 // "Good enough" pages. Optional. Collecting them all earns a wry line.
+// All six sit before BOSS_TRIGGER_X (3420) — past that the player is snapped
+// to the duel spot, sealed in, and (after the win) frozen for the end card,
+// so nothing past the trigger is ever actually reachable.
 export const PAGES = [
   { x: 410, y: 320 }, { x: 585, y: 252 }, { x: 1180, y: 300 },
-  { x: 2360, y: 356, }, { x: 3250, y: GROUND_Y - 40 }, { x: 3900, y: GROUND_Y - 40 },
+  { x: 2360, y: 356, }, { x: 3250, y: GROUND_Y - 40 }, { x: 3340, y: GROUND_Y - 40 },
 ];
 
 export const SIGNS = [

@@ -1,5 +1,8 @@
 import { Input } from '../engine/input.js';
 import { clamp } from '../engine/math.js';
+import { loadImage, drawAnchored } from '../engine/sprite.js';
+
+export const SPRITE = loadImage(new URL('../assets/editor.png', import.meta.url));
 
 // The Editor — a call-and-response boss. You cannot damage it. It performs a
 // short phrase of moves; you play the same phrase back on the beat. Matching
@@ -219,33 +222,22 @@ export class Editor {
     ctx.save();
     ctx.translate(Math.round(this.x + sh), Math.round(y));
 
-    // robe
-    ctx.fillStyle = this.done ? '#4a3a2a' : '#241a30';
-    ctx.beginPath();
-    ctx.moveTo(this.w / 2, -6);
-    ctx.lineTo(this.w + 6, this.h);
-    ctx.lineTo(-6, this.h);
-    ctx.closePath();
-    ctx.fill();
-
-    // hood void
-    ctx.fillStyle = '#0c0812';
-    ctx.beginPath();
-    ctx.arc(this.w / 2, 10, 15, 0, Math.PI * 2);
-    ctx.fill();
-
-    // the pen
-    ctx.strokeStyle = this.done ? '#8fd6c4' : '#ff4d68';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(this.w + 2, this.h - 20);
-    ctx.lineTo(this.w + 22, this.h - 4);
-    ctx.stroke();
-
-    // eyes
-    ctx.fillStyle = this.done ? '#9fe8d6' : '#ff5a75';
-    ctx.fillRect(this.w / 2 - 8, 8, 4, 4);
-    ctx.fillRect(this.w / 2 + 4, 8, 4, 4);
+    if (SPRITE.ready) {
+      drawAnchored(ctx, SPRITE, { x: this.w / 2, bottomY: this.h, height: 150 });
+    } else {
+      // vector placeholder — shows only until editor.png decodes
+      ctx.fillStyle = '#241a30';
+      ctx.beginPath();
+      ctx.moveTo(this.w / 2, -6);
+      ctx.lineTo(this.w + 6, this.h);
+      ctx.lineTo(-6, this.h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#0c0812';
+      ctx.beginPath();
+      ctx.arc(this.w / 2, 10, 15, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
 
     // demonstrated move: a big glyph pulsing beside the Editor during 'call'

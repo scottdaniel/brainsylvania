@@ -1,5 +1,13 @@
 # Brainsylvania
 
+Human note: This idea for a game has probably been pinging around in my brain ever
+since I struggled with mental illness as a kid. Never got around to making it ...
+because, well, mental illness. Thanks to Claude doing the heavy lifting of implementation, 
+this is finally a reality. So, most of the code is Claude. All of the inspiration
+is me. I've also hand-drawn (badly) some of the characters in the game. Sounds and some
+UI-elements are human-created and are sourced from GameDevMarket.net via a Humble
+Bundle. See [CREDITS.md](CREDITS.md) for more details.
+
 A Castlevania-style side-scroller where every level is a different *-ism*. You don't
 kill your inner demons — turns out they don't stay dead. You learn their moves until
 they recognize themselves in you, and then they walk with you instead.

@@ -30,6 +30,7 @@ export class Game {
     this.spiraling = false;
     this.telegraphSeen = false;
     this._checkpointHit = false;
+    this._allPagesLine = false;
     this._turnPending = false;
     this._turnDone = false;
     this.dialogue.queue([]);
@@ -92,6 +93,12 @@ export class Game {
       this.hud.say('checkpoint — the lamp is on', 2.2);
     }
 
+    // all "good enough" pages collected
+    if (!this._allPagesLine && this.player.pages >= this.level.pages.length) {
+      this._allPagesLine = true;
+      this.hud.say(C.ALL_PAGES_LINE, 3.2);
+    }
+
     // ---- boss trigger ----
     if (!this.bossStarted && this.player.x > this.level.bossTriggerX) {
       this.bossStarted = true;
@@ -102,7 +109,12 @@ export class Game {
       this.player.vx = 0;
       this.player.face = 1;
       this.boss.wake();
-      this.dialogue.queue(C.EDITOR_INTRO);
+      if (this._allPagesLine) {
+        this.boss.recognition = C.PAGES_RECOGNITION_BONUS;
+        this.dialogue.queue([...C.EDITOR_INTRO, ...C.EDITOR_INTRO_BONUS]);
+      } else {
+        this.dialogue.queue(C.EDITOR_INTRO);
+      }
     }
 
     // ---- boss ----

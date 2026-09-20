@@ -40,6 +40,7 @@ export class Player {
     this.fell = false;
     this.echoDir = null;
     this.echoT = 0;
+    this.scribbleT = 0;
   }
 
   // Called when the player nails a beat in the Editor's call-and-response:
@@ -49,6 +50,11 @@ export class Player {
     this.echoT = 0.34;
     if (dir === 'left') this.face = -1;
     if (dir === 'right') this.face = 1;
+  }
+
+  // Called when the player mirrors an imp: draw its own scribble back at it.
+  doScribble() {
+    this.scribbleT = 0.4;
   }
 
   get box() { return { x: this.x, y: this.y, w: this.w, h: this.h }; }
@@ -74,6 +80,7 @@ export class Player {
     this.iframes = Math.max(0, this.iframes - dt);
     this.echoT = Math.max(0, this.echoT - dt);
     if (this.echoT === 0) this.echoDir = null;
+    this.scribbleT = Math.max(0, this.scribbleT - dt);
 
     const wantLeft = !locked && Input.held('left');
     const wantRight = !locked && Input.held('right');
@@ -167,6 +174,17 @@ export class Player {
       ctx.fillRect(5, -2, this.w - 10, 12);
       ctx.fillStyle = '#1a1226';
       ctx.fillRect(this.face > 0 ? this.w - 9 : 5, 2, 4, 4);
+    }
+    if (this.scribbleT > 0) {
+      ctx.strokeStyle = '#ff5a75';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const yy = -16 - i * 4;
+        ctx.moveTo(-8, yy);
+        ctx.lineTo(this.w + 8, yy + (i % 2 ? 4 : -4));
+      }
+      ctx.stroke();
     }
     ctx.restore();
   }

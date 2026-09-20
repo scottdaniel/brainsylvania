@@ -45,6 +45,7 @@ export class Imp {
     if (this.calmed || this.scribble <= 0) return false;
     if (Math.abs(player.x - this.x) > 130) return false;
     this.calmed = true;
+    player.doScribble();
     SFX.mirrorGood.play(0.6);
     return true;
   }

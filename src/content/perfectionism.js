@@ -42,14 +42,20 @@ export const IMPS = [
   { x: 3050, y: GROUND_Y - 34, range: 210 },
 ];
 
-// "Good enough" pages. Optional. Collecting them all earns a wry line.
-// All six sit before BOSS_TRIGGER_X (3420) — past that the player is snapped
-// to the duel spot, sealed in, and (after the win) frozen for the end card,
-// so nothing past the trigger is ever actually reachable.
+// "Good enough" pages. Optional. Collecting all of them earns a wry line
+// (ALL_PAGES_LINE) and a head start on recognizing The Editor — see
+// PAGES_RECOGNITION_BONUS and EDITOR_INTRO_BONUS below. All six sit before
+// BOSS_TRIGGER_X (3420) — past that the player is snapped to the duel spot,
+// sealed in, and (after the win) frozen for the end card, so nothing past
+// the trigger is ever actually reachable.
 export const PAGES = [
   { x: 410, y: 320 }, { x: 585, y: 252 }, { x: 1180, y: 300 },
   { x: 2360, y: 356, }, { x: 3250, y: GROUND_Y - 40 }, { x: 3340, y: GROUND_Y - 40 },
 ];
+
+// How much starting RECOGNITION the Editor fight opens with if every page
+// was collected — picking up every "good enough" is, itself, practice.
+export const PAGES_RECOGNITION_BONUS = 20;
 
 export const SIGNS = [
   { x: 200, y: GROUND_Y - 96, text: 'Collect the "Good enough" pages.' },
@@ -75,6 +81,17 @@ export const EDITOR_INTRO = [
   { who: '', text: 'You cannot damage The Editor. It shows you a phrase of moves — then you play the same phrase back.' },
   { who: '', text: '▲ = jump   ▼ = duck   ◀ ▶ = step.  Hit each beat in time. Match its phrases and it recognises itself in you.' },
 ];
+
+// Appended to EDITOR_INTRO if every "good enough" page was collected.
+export const EDITOR_INTRO_BONUS = [
+  { who: 'THE EDITOR', text: "...you picked up every page I ever marked 'good enough.'" },
+  { who: 'THE EDITOR', text: "That's practice, whether you meant it as practice or not." },
+  { who: '', text: `RECOGNITION starts at ${PAGES_RECOGNITION_BONUS} — the practice already counts.` },
+];
+
+// Shown once, the moment the last page is collected.
+export const ALL_PAGES_LINE =
+  "All six good enoughs, collected. You just perfected the art of not being perfect.";
 
 // Shown after a phrase, keyed by how it went.
 export const MIRROR_LINES = {

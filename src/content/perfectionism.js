@@ -52,9 +52,9 @@ export const PAGES = [
 ];
 
 export const SIGNS = [
-  { x: 200, y: GROUND_Y - 96, text: 'DONE IS BETTER THAN PERFECT' },
-  { x: 1470, y: GROUND_Y - 96, text: 'the imps only bite if you stop' },
-  { x: 2860, y: GROUND_Y - 96, text: 'the editor is in. it is always in.' },
+  { x: 200, y: GROUND_Y - 96, text: 'Collect the "Good enough" pages.' },
+  { x: 1470, y: GROUND_Y - 96, text: 'DONE IS BETTER THAN PERFECT.' },
+  { x: 2860, y: GROUND_Y - 96, text: 'The editor is here. It is always here.' },
 ];
 
 export const CHECKPOINT = { x: 2760, y: GROUND_Y - 60 };
@@ -64,9 +64,9 @@ export const ARENA = { x0: 3260, x1: 4560 };
 // ---- Writing -------------------------------------------------------------
 
 export const OPENING = [
-  { who: 'YOU', text: 'It just needs one more pass.' },
-  { who: 'YOU', text: 'It always needs one more pass.' },
-  { who: '', text: 'Move with ← →.  Jump with ↑ or Z.  Nothing here holds still for long — keep going.' },
+  { who: 'YOU', text: 'It just needs one more edit.' },
+  { who: 'YOU', text: 'It always needs one more edit.' },
+  { who: '', text: 'Move with ← →.  Jump with ↑ or Z.  Nothing here holds still for long — keep going, you got this.' },
 ];
 
 export const EDITOR_INTRO = [
@@ -88,7 +88,7 @@ export const MIRROR_LINES = {
     "'Close. Closer than I expected.'",
   ],
   whiff: [
-    "The phrase scatters. The Editor tidies it away and starts again. No harm.",
+    "The phrase scatters. The Editor tidies it away and starts again.",
     "'Again. From the top. We have time.'",
   ],
 };
@@ -97,12 +97,12 @@ export const MIRROR_FIRST_HINT =
   "Watch the row of marks fill in — then play it back: ▲ jump, ▼ duck, ◀ ▶ step, one per beat.";
 
 export const EDITOR_TURN = [
-  { who: 'THE EDITOR', text: 'Stop. Stop, stop. Those are my marks.' },
-  { who: 'THE EDITOR', text: 'I have been doing this since you were nine and the poem rhymed wrong.' },
+  { who: 'THE EDITOR', text: 'Stop. Stop, stop. Those are my moves.' },
+  { who: 'THE EDITOR', text: 'I have been doing this since you were six and got your first grades.' },
   { who: 'YOU', text: 'I know. I could never tell where you ended and I started.' },
   { who: 'THE EDITOR', text: '...' },
   { who: 'THE EDITOR', text: "The red pen was pointed the wrong way this whole time, wasn't it." },
-  { who: 'THE EDITOR', text: "Fine. New deal. I edit. I don't erase. And you get to publish before you die." },
+  { who: 'THE EDITOR', text: "Fine. New deal. I edit. I don't erase. DONE IS BETTER THAN PERFECT." },
   { who: '', text: 'THE EDITOR joins you. You can now REVISE your jump once in mid-air (press jump again).' },
 ];
 
@@ -114,6 +114,6 @@ export const OUTRO = [
 
 export const SPIRAL_LINES = [
   'Okay. That happened. Back up a bit.',
-  'A spiral is just a circle that admits it.',
+  'A spiral is just a circle that is trying too hard.',
   "Nobody's grading the retries.",
 ];

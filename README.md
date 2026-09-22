@@ -85,8 +85,7 @@ licensed for commercial use — see [CREDITS.md](CREDITS.md).
 
 ## Next
 
-Level 2+: catastrophizing (*The Oracle of Worst-Case*), impostorism (*The Committee*),
-avoidance (*The Fog*). Each is a new boss and a new verb for the mirror.
+See [TODO.md](TODO.md).
 
 ## Credits
 

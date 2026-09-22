@@ -4,6 +4,8 @@ import { loadImage, drawAnchored } from '../engine/sprite.js';
 import { SFX } from './sfx.js';
 
 const SPRITE = loadImage(new URL('../assets/player.png', import.meta.url));
+const DUCK_SPRITES = [0, 1, 2, 3].map((i) =>
+  loadImage(new URL(`../assets/player-duck-${i}.png`, import.meta.url)));
 
 // Tuned so a running jump clears ~215px horizontally and ~128px vertically.
 const GRAV = 1900;
@@ -13,6 +15,7 @@ const FRICTION = 2600;
 const JUMP_V = 700;
 const COYOTE = 0.11;
 const BUFFER = 0.13;
+const DUCK_TIME = 0.12;   // seconds to fully crouch, or to stand back up
 
 export class Player {
   constructor(x, y) {
@@ -32,6 +35,7 @@ export class Player {
     this.face = 1;
     this.onGround = false;
     this.ducking = false;
+    this.duckT = 0;
     this.coyote = 0;
     this.buffer = 0;
     this.usedDouble = false;
@@ -85,6 +89,11 @@ export class Player {
     const wantLeft = !locked && Input.held('left');
     const wantRight = !locked && Input.held('right');
     this.ducking = !locked && this.onGround && Input.held('duck');
+    const duckTarget = this.ducking ? 1 : 0;
+    const duckStep = dt / DUCK_TIME;
+    this.duckT = this.duckT < duckTarget
+      ? Math.min(duckTarget, this.duckT + duckStep)
+      : Math.max(duckTarget, this.duckT - duckStep);
 
     const target = (wantRight - wantLeft) * RUN * (this.ducking ? 0.35 : 1);
     if (target !== 0) {
@@ -157,7 +166,11 @@ export class Player {
     ctx.save();
     ctx.translate(Math.round(this.x + ex), Math.round(this.y + ey + squash));
     if (squash) ctx.scale(1.15, (this.h - squash) / this.h);
-    if (!blink && SPRITE.ready) {
+    const duckFrame = this.duckT > 0 ? Math.min(3, Math.floor(this.duckT * 4)) : -1;
+    const duckSprite = duckFrame >= 0 ? DUCK_SPRITES[duckFrame] : null;
+    if (!blink && duckSprite && duckSprite.ready) {
+      drawAnchored(ctx, duckSprite, { x: this.w / 2, bottomY: this.h, height: 52, flip: this.face < 0 });
+    } else if (!blink && SPRITE.ready) {
       const running = this.onGround && Math.abs(this.vx) > 20;
       const bob = running ? Math.abs(Math.sin(this.animT * 12)) * 3 : 0;
       drawAnchored(ctx, SPRITE, {

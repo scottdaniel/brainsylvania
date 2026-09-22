@@ -122,8 +122,10 @@ export class Game {
       this.boss.update(dt, this.player, (ev, key) => this._bossEvent(ev, key));
     }
 
-    // mirror an imp (E), only out in the level
+    // mirror (E), only out in the level — always draws the gesture, whether
+    // or not there's an imp close enough for it to actually land
     if (Input.pressed('mirror') && this.boss.phase === 'sleep') {
+      this.player.doScribble();
       for (const im of this.level.imps) {
         if (im.tryMirror(this.player)) {
           this.hud.say('you copy its scribble. it deflates, embarrassed.', 2.4);

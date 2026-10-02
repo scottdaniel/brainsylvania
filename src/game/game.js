@@ -6,7 +6,7 @@ import { Editor, SPRITE as EDITOR_SPRITE } from './editor.js';
 import { Dialogue } from './dialogue.js';
 import { Hud } from './hud.js';
 import { drawAnchored } from '../engine/sprite.js';
-import { SFX, AMBIENT } from './sfx.js';
+import { SFX, AMBIENT, ORGAN, ORGAN_BOSS } from './sfx.js';
 import * as C from '../content/perfectionism.js';
 
 export class Game {
@@ -17,6 +17,7 @@ export class Game {
     this.hud = new Hud();
     this.mode = 'title';
     this._padWasConnected = false;
+    this._musicMode = null;   // null until the game starts; then 'calm' or 'boss'
     this.reset();
   }
 
@@ -35,6 +36,20 @@ export class Game {
     this._turnDone = false;
     this.dialogue.queue([]);
     this.hud.toastT = 0;
+    if (this._musicMode === 'boss') this._music('calm');
+  }
+
+  // Crossfade between the calm organ loop and the boss-fight one.
+  _music(mode) {
+    if (this._musicMode === null || this._musicMode === mode) return;
+    this._musicMode = mode;
+    if (mode === 'boss') {
+      ORGAN.stop({ fadeOut: 2 });
+      ORGAN_BOSS.start({ fadeIn: 2 });
+    } else {
+      ORGAN_BOSS.stop({ fadeOut: 3 });
+      ORGAN.start({ fadeIn: 3 });
+    }
   }
 
   start() {
@@ -42,6 +57,9 @@ export class Game {
     this.mode = 'playing';
     this.dialogue.queue(C.OPENING);
     AMBIENT.start();
+    this._musicMode = 'calm';
+    ORGAN.start({ fadeIn: 4 });
+    ORGAN_BOSS.preload();
   }
 
   step(dt) {
@@ -109,6 +127,7 @@ export class Game {
       this.player.vx = 0;
       this.player.face = 1;
       this.boss.wake();
+      this._music('boss');
       if (this._allPagesLine) {
         this.boss.recognition = C.PAGES_RECOGNITION_BONUS;
         this.dialogue.queue([...C.EDITOR_INTRO, ...C.EDITOR_INTRO_BONUS]);
@@ -137,6 +156,7 @@ export class Game {
     // ---- boss defeated -> befriend sequence ----
     if (this.boss.done && !this._turnPending && !this._turnDone) {
       this._turnPending = true;
+      this._music('calm');
       this.dialogue.queue(C.EDITOR_TURN, () => {
         this.player.canDoubleJump = true;
         this.sealWall = null;

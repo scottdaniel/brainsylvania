@@ -75,6 +75,8 @@ src/
   assets/   player.png, editor.png (hand-drawn sprites) + sfx/ (sound) + ui/ (dialogue box)
 assets/
   candidates/  surveyed third-party art/audio, not wired into the game yet
+tools/
+  loopify.py   make a recorded loop seamless + normalized (stdlib only)
 ```
 
 ## Sound
@@ -82,6 +84,17 @@ assets/
 Jump, imp hits, mirror hits/phrases, dialogue blips, and a looping castle drone —
 all in `src/assets/sfx/`, played through `src/engine/audio.js`. Third-party,
 licensed for commercial use — see [CREDITS.md](CREDITS.md).
+
+Layered under the drone is organ music Scott played himself: a calm 4-chord loop
+for the level, and a faster triplet one that crossfades in when the Editor fight
+starts and back out when the Editor is befriended (or the level restarts).
+
+Both run through Web Audio rather than `<audio loop>` (which restarts by seeking
+and leaves a hiccup at the seam), and the recordings are prepared with
+`tools/loopify.py`: normalizes the level, and makes the seam clean — by trimming
+the release tail and crossfading end into start for a pad, or, for a rhythmic
+loop whose bar length must not change, just fading the first/last few
+milliseconds. It reports how long the level drops out across the seam.
 
 ## Next
 

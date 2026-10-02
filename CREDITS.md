@@ -3,6 +3,9 @@
 ## Original art
 
 - Player and Editor character art — hand-drawn by Scott.
+- Organ loops (`src/assets/sfx/organ-1.wav` for the level, `organ-2.wav` for
+  the Editor fight) — played by Scott on a Roland keyboard, recorded in
+  GarageBand.
 
 ## Third-party assets
 

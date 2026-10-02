@@ -1,4 +1,4 @@
-import { sfx, loopTrack } from '../engine/audio.js';
+import { sfx, loopTrack, loopLayer } from '../engine/audio.js';
 
 const url = (name) => new URL(`../assets/sfx/${name}`, import.meta.url);
 
@@ -29,3 +29,10 @@ export const SFX = {
 };
 
 export const AMBIENT = loopTrack(url('ambient.wav'), 0.55);
+
+// Scott's organ loops, layered under the ambience. Both files are normalized
+// to about -3 dBFS, so these volumes are comparable: the calm one sits a few
+// dB under the ambience; the faster, triplet-driven one is a touch louder for
+// the boss fight.
+export const ORGAN = loopLayer(url('organ-1.wav'), { volume: 0.15 });
+export const ORGAN_BOSS = loopLayer(url('organ-2.wav'), { volume: 0.2 });
